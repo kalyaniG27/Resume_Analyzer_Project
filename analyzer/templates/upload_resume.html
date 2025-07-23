@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analysis Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            color: #1a202c;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Navigation Bar - Simplified */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 15px 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo i {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #4a5568;
+            font-weight: 600;
+            padding: 8px 15px;
+            transition: all 0.3s ease;
+            border-radius: 0;
+        }
+        
+        .nav-links a:hover {
+            color: #4361ee;
+        }
+        
+        .nav-links a.active {
+            color: #4361ee;
+            border-bottom: 3px solid #4361ee;
+            box-shadow: none;
+            background: transparent;
+        }
+        
+        /* Main Container */
+        .container {
+            width: 100%;
+            max-width: 1200px; /* Increased max-width */
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        /* Upload Section */
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            width: 100%;
+        }
+        
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #4361ee, #7209b7);
+        }
+        
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .section-title i {
+            color: #4361ee;
+        }
+        
+        .formats {
+            font-size: 16px;
+            color: #718096;
+            margin-bottom: 15px;
+            padding-left: 40px;
+        }
+        
+        .divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 20px 0;
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            margin-bottom: 15px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #4361ee;
+            background: #f0f5ff;
+        }
+        
+        .upload-text {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .browse-btn {
+            background: linear-gradient(90deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            margin-top: 15px;
+        }
+        
+        .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        /* Resumes Section - Made more compact */
+        .resumes-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 25px 35px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            width: 100%;
+        }
+        
+        .resumes-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #7209b7, #f72585);
+        }
+        
+        .resume-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(550px, 1fr));
+            gap: 20px;
+        }
+        
+        .resume-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #4361ee;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .resume-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .file-icon {
+            width: 36px;
+            height: 36px;
+            background: #e0e7ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #4361ee;
+            flex-shrink: 0;
+        }
+        
+        .resume-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .resume-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .resume-details {
+            display: flex;
+            gap: 12px;
+            color: #718096;
+            font-size: 12px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .file-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #64748b;
+            font-size: 13px;
+        }
+        
+        .file-action-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+        
+        .suggestions {
+            background: #f0f5ff;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .suggestions-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .suggestions-title i {
+            color: #4361ee;
+            font-size: 13px;
+        }
+        
+        .suggestions-list {
+            padding-left: 18px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        
+        .suggestions-list li {
+            margin-bottom: 6px;
+            line-height: 1.3;
+            color: #4a5568;
+            font-size: 12px;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #718096;
+            font-size: 15px;
+            margin-top: 50px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .resume-grid {
+                grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .resume-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+       .top-nav-links {
+    display: flex;
+    gap: 8px;
+    background: white;
+    padding: 4px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.top-nav-links a {
+    text-decoration: none;
+    color: #5f6368;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.top-nav-links a:hover {
+    background: #f0f5ff;
+    color: #1a73e8;
+    transform: translateY(-2px);
+}
+
+.top-nav-links a.active {
+    background: linear-gradient(135deg, #1a73e8 0%, #2c8aff 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+}
+
+.top-nav-links a.active i {
+    color: white;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo i {
+    background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+    color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.logo h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+
+
+
+            .upload-area {
+                padding: 30px 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .upload-section, .resumes-section {
+                padding: 20px 15px;
+            }
+            
+            .section-title {
+                font-size: 24px;
+            }
+            
+            .upload-text {
+                font-size: 18px;
+            }
+            
+            .browse-btn {
+                padding: 10px 20px;
+                font-size: 15px;
+            }
+            
+            .resume-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+   {% include 'navbar.html' with active_page='upload_resume' %}
+    
+    <!-- Main Content Container -->
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h2 class="section-title">
+                <i class="fas fa-cloud-upload-alt"></i>
+                Resume Upload & Analysis
+            </h2>
+            <p>Upload your resume to get ATS compatibility scores and improvement suggestions</p>
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin: 20px 0;">
+                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">
+                    1
+                </div>
+                <h3 style="font-size: 20px; font-weight: 600;">Upload Resume</h3>
+            </div>
+            
+            <div class="formats">
+                <i class="fas fa-info-circle"></i> Supported formats: PDF, DOCX, TXT (Max 5MB)
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="upload-area" id="dropZone">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 42px; color: #4361ee; margin-bottom: 15px;"></i>
+                <div class="upload-text">Drag and drop your file here, or click to browse</div>
+                <button class="browse-btn">Choose File</button>
+                <input type="file" class="file-input" id="fileInput" accept=".pdf,.docx,.txt">
+            </div>
+        </div>
+        
+        <!-- Your Resumes Section Below Upload Section -->
+        <div class="resumes-section">
+            <h2 class="section-title">
+                <i class="fas fa-folder-open"></i>
+                Your Resumes
+            </h2>
+            
+            <div class="resume-grid">
+                <div class="resume-card">
+                    <div class="resume-header">
+                        <div class="file-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="resume-info">
+                            <div class="resume-name">Senior_Developer_Resume.pdf</div>
+                            <div class="resume-details">
+                                <span>256 KB</span>
+                                <span>•</span>
+                                <span>2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <div class="file-action-btn" title="View">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="file-action-btn" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                            <div class="file-action-btn" title="Download">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div class="suggestions">
+                        <h3 class="suggestions-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Improvement Suggestions
+                        </h3>
+                        <ul class="suggestions-list">
+                            <li>Add more quantifiable achievements to demonstrate impact</li>
+                            <li>Include relevant keywords for target role (e.g., "JavaScript", "React", "Node.js")</li>
+                            <li>Optimize formatting for ATS parsing by using standard section headings</li>
+                            <li>Add a professional summary at the top of your resume</li>
+                            <li>Include industry-specific certifications if applicable</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="resume-card">
+                    <div class="resume-header">
+                        <div class="file-icon">
+                            <i class="fas fa-file-word"></i>
+                        </div>
+                        <div class="resume-info">
+                            <div class="resume-name">UX_Designer_Resume.docx</div>
+                            <div class="resume-details">
+                                <span>198 KB</span>
+                                <span>•</span>
+                                <span>1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <div class="file-action-btn" title="View">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="file-action-btn" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                            <div class="file-action-btn" title="Download">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div class="suggestions">
+                        <h3 class="suggestions-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Improvement Suggestions
+                        </h3>
+                        <ul class="suggestions-list">
+                            <li>Add portfolio link to showcase design projects</li>
+                            <li>Include more metrics to demonstrate design impact</li>
+                            <li>Add specific design tools proficiency (Figma, Sketch, Adobe XD)</li>
+                            <li>Highlight user research methodologies you're experienced with</li>
+                            <li>Showcase any design awards or recognitions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        
+    </div>
+    
+    <script>
+        // File upload functionality
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.querySelector('.browse-btn');
+        
+        // Open file dialog when clicking the upload area or button
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        browseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+        
+        // Handle drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropZone.style.borderColor = '#4361ee';
+            dropZone.style.background = '#e6f0ff';
+        }
+        
+        function unhighlight() {
+            dropZone.style.borderColor = '#cbd5e0';
+            dropZone.style.background = '#f8fafc';
+        }
+        
+        // Handle file drop
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        // Handle file selection
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+        
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const fileName = file.name;
+                const fileSize = formatFileSize(file.size);
+                
+                // Update UI with file info
+                dropZone.innerHTML = `
+                    <i class="fas fa-file-alt" style="font-size: 42px; color: #10b981; margin-bottom: 12px;"></i>
+                    <div class="upload-text">${fileName}</div>
+                    <div style="color: #718096; margin-bottom: 15px;">${fileSize}</div>
+                    <button class="browse-btn" style="background:linear-gradient(90deg, #10b981 0%, #059669 100%);">
+                        Analyze Resume
+                    </button>
+                `;
+                
+                // Add new event listener for the analyze button
+                const newBtn = dropZone.querySelector('.browse-btn');
+                newBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    alert(`Analyzing: ${fileName}\nRedirecting to results page...`);
+                    // In a real application, you would submit the file to a server here
+                });
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Add functionality to file action buttons
+        document.querySelectorAll('.file-action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.querySelector('i').className;
+                const fileName = this.closest('.resume-card').querySelector('.resume-name').textContent;
+                
+                if (action.includes('eye')) {
+                    alert(`Viewing: ${fileName}`);
+                } else if (action.includes('trash')) {
+                    if (confirm(`Are you sure you want to delete ${fileName}?`)) {
+                        this.closest('.resume-card').style.opacity = '0';
+                        setTimeout(() => {
+                            this.closest('.resume-card').remove();
+                        }, 300);
+                    }
+                } else if (action.includes('download')) {
+                    alert(`Downloading: ${fileName}`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
