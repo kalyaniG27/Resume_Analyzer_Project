@@ -36,4 +36,34 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
     if created:
         Profile.objects.get_or_create(user=instance)
 
+class Activity(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    activity_type = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    icon_class = models.CharField(max_length=50, default='fas fa-history')
 
+    def __str__(self):
+        return f'{self.user.username} - {self.activity_type}'
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name_plural = "Activities"
+
+class JobApplication(models.Model):
+    STATUS_CHOICES = [
+        ('Applied', 'Applied'),
+        ('Interviewing', 'Interviewing'),
+        ('Offer', 'Offer Received'),
+        ('Rejected', 'Rejected'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    company_name = models.CharField(max_length=100)
+    job_title = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Applied')
+    application_date = models.DateField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.job_title} at {self.company_name} for {self.user.username}'

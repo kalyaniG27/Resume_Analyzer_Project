@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django import forms
 from django.views.decorators.csrf import csrf_exempt
@@ -7,11 +7,16 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.contrib import messages
+from django.db.models import Q
 from .forms import RegisterForm, ProfileForm, ResumeForm
-from .models import Resume, Profile
+from .models import Resume, Profile, Activity, JobApplication
 import json
 from analyzer.utils.gemini import generate_interview_questions
 from django.contrib.auth.models import User  # ✅ make sure you import this
+from .ats_utils import extract_text_from_pdf
+from analyzer.utils.resume_analysis import analyze_resume_score
+import os
+
 
 def landing_page(request):
     return render(request, 'landingpage.html')
@@ -57,28 +62,145 @@ def signup_view(request):
 # 🏠 Dashboard
 @login_required
 def dashboard(request):
-    resumes = Resume.objects.filter(user=request.user)
-    username = request.user.username  # Get the logged in user's username
+    resumes = Resume.objects.filter(user=request.user).order_by('-uploaded_at')
+    resume_count = resumes.count()
+
+    latest_resume = resumes.first() if resumes.exists() else None
+    skill_score = latest_resume.ats_score if latest_resume else None  # Default skill score if no resume exists
+    
+    # Job Application Tracker Data
+    # Fetch all applications for the user in a single query for efficiency
+    applications_list = list(JobApplication.objects.filter(user=request.user))
+    
+    # Calculate counts in Python to avoid multiple database hits
+    applied_count = len(applications_list)
+    interviews_count = sum(1 for app in applications_list if app.status == 'Interviewing')
+    offers_count = sum(1 for app in applications_list if app.status == 'Offer')
+    pending_count = sum(1 for app in applications_list if app.status in ['Applied', 'Interviewing'])
+
+    # Domain-wise Progress
+    skill_domains = [
+        {'name': 'Web Development', 'progress': 0, 'icon': 'fas fa-code'},
+        {'name': 'Data Science', 'progress': 0, 'icon': 'fas fa-brain'},
+        {'name': 'Android Development', 'progress': 0, 'icon': 'fab fa-android'},
+        {'name': 'UI/UX Design', 'progress': 0, 'icon': 'fas fa-drafting-compass'},
+        {'name': 'DevOps', 'progress': 0, 'icon': 'fas fa-server'},
+        {'name': 'Public Speaking', 'progress': 0, 'icon': 'fas fa-microphone-alt'},
+        {'name': 'Digital Marketing', 'progress': 0, 'icon': 'fas fa-bullhorn'},
+    ]
+
+    if latest_resume and latest_resume.domain and latest_resume.domain != "General":
+        for domain in skill_domains:
+            if domain['name'] == latest_resume.domain:
+                domain['progress'] = latest_resume.ats_score or 0
+                break  # Found the domain, no need to loop further
+    # Learning Recommendations Logic
+    learning_recommendations = []
+    if latest_resume and latest_resume.domain and latest_resume.domain != "General":
+        domain = latest_resume.domain
+        if domain == "Web Development":
+            learning_recommendations = [
+                {'icon': 'fas fa-book', 'label': 'Learn', 'text': 'Data Structures'},
+                {'icon': 'fas fa-server', 'label': 'Master', 'text': 'System Design'},
+                {'icon': 'fas fa-cloud', 'label': 'Explore', 'text': 'Cloud Platforms'},
+                {'icon': 'fas fa-shield-alt', 'label': 'Study', 'text': 'API Security'}
+            ]
+        elif domain == "Data Scientist":
+            learning_recommendations = [
+                {'icon': 'fas fa-chart-line', 'label': 'Learn', 'text': 'ML Algorithms'},
+                {'icon': 'fas fa-database', 'label': 'Master', 'text': 'SQL & Big Data'},
+                {'icon': 'fas fa-eye', 'label': 'Explore', 'text': 'Data Visualization'},
+                {'icon': 'fas fa-brain', 'label': 'Study', 'text': 'Deep Learning'}
+            ]
+    else: # Default recommendations if no specific domain
+        learning_recommendations = [
+            {'icon': 'fas fa-file-alt', 'label': 'Improve', 'text': 'Resume Keywords'},
+            {'icon': 'fas fa-user-tie', 'label': 'Practice', 'text': 'Behavioral Qs'},
+            {'icon': 'fab fa-linkedin', 'label': 'Network', 'text': 'On LinkedIn'},
+            {'icon': 'fas fa-building', 'label': 'Research', 'text': 'Target Companies'}
+        ]
+
+    activities = Activity.objects.filter(user=request.user)[:5] # Get the 5 most recent activities
+    username = request.user.first_name
     return render(request, 'dashboard.html', {
         'resumes': resumes,
-        'username': username
+        'resume_count': resume_count,
+        'latest_resume': latest_resume,
+        'skill_score': skill_score,  # Pass the skill score to the template
+        'activities': activities,
+        'applied_count': applied_count,
+        'interviews_count': interviews_count,
+        'offers_count': offers_count,
+        'pending_count': pending_count,
+        'learning_recommendations': learning_recommendations,
+        'skill_domains': skill_domains,
     })
+
+
 
 # 📁 Upload Resume
 @login_required
 def upload_resume(request):
+    resumes = Resume.objects.filter(user=request.user).order_by('-uploaded_at')
     if request.method == 'POST':
         form = ResumeForm(request.POST, request.FILES)
         if form.is_valid():
             resume = form.save(commit=False)
             resume.user = request.user
-            resume.ats_score = 75.0  # You can replace with real logic
-            resume.domain = "Web Development"  # Replace with logic
+            score, domain = analyze_resume_score(resume.file)
+            resume.ats_score = score
+            resume.domain = domain
+           
             resume.save()
-            return redirect('dashboard')
+
+            # Log this action as an activity
+            Activity.objects.create(
+                user=request.user,
+                activity_type="Uploaded Resume",
+                description=f"{resume.file.name.split('/')[-1]} ({domain})",
+                icon_class="fas fa-upload"
+            )
+
+            ats_score = resume.ats_score
+            messages.success(request, 'Resume uploaded and analyzed successfully!')
+            resumes = Resume.objects.filter(user=request.user).order_by('-uploaded_at') # Re-query to get the latest list
+            return render(request, 'upload_resume.html', {'form': form, 'ats_score': ats_score, 'resumes': resumes})
     else:
         form = ResumeForm()
-    return render(request, 'upload_resume.html', {'form': form})
+        ats_score = None  # Ensure ats_score is defined even when the form is not submitted
+
+    return render(request, 'upload_resume.html', {'form': form, 'ats_score': ats_score, 'resumes': resumes})
+
+@login_required
+def delete_resume(request, resume_id):
+    # Use get_object_or_404 to safely retrieve the resume or return a 404 error
+    resume = get_object_or_404(Resume, id=resume_id)
+
+    # Security check: ensure the user deleting the resume is the one who uploaded it
+    if resume.user != request.user:
+        messages.error(request, "You are not authorized to delete this resume.")
+        return redirect('upload_resume')
+
+    # Get the filename before we delete the resume object, to find the activity
+    resume_filename = resume.file.name.split('/')[-1] # e.g., 'my_resume.pdf'
+    activity_description = f"{resume_filename} ({resume.domain})"
+
+    resume.file.delete(save=False)  # Delete the actual file from storage
+    resume.delete()  # Delete the resume record from the database
+
+    # Also delete the corresponding "Uploaded Resume" activity.
+    # We find the most recent activity matching the description to be safe,
+    # in case multiple files had the same name.
+    activity_to_delete = Activity.objects.filter(
+        user=request.user,
+        activity_type="Uploaded Resume",
+        description=activity_description
+    ).order_by('-timestamp').first()
+    if activity_to_delete:
+        activity_to_delete.delete()
+
+    messages.success(request, "Resume deleted successfully.")
+    return redirect('upload_resume')
 
 # 👤 Profile
 @login_required
